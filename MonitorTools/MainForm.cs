@@ -1,8 +1,8 @@
-﻿using MonitorTools.Tool;
-using System;
+﻿using System;
 using System.Collections.Generic;
-using System.Net.NetworkInformation;
+using System.Net.Sockets;
 using System.Windows.Forms;
+using MonitorTools.Tool;
 
 namespace MonitorTools
 {
@@ -10,7 +10,6 @@ namespace MonitorTools
     {
         // 创建日志和数据库操作的帮助类实例
         private readonly LogHelper logHelper;
-        private readonly DatabaseHelper databaseHelper = new DatabaseHelper();
 
         public MainForm()
         {
@@ -37,38 +36,76 @@ namespace MonitorTools
 
         private void btnStartService_Click(object sender, EventArgs e)
         {
-            pingTimer.Start(); // 启动定时器
-            logHelper.AppendLog("服务已启动，开始每小时 ping 检查...");
+            if (this.btnStartService.Text == "启动服务")
+            {
+                this.btnStartService.Text = "停止服务";
+                pingTimer.Start(); // 启动定时器
+                logHelper.AppendLog("服务已启动，开始ping 检查...");
+            }
+            else
+            {
+                this.btnStartService.Text = "启动服务";
+                pingTimer.Stop(); // 停止定时器
+            }
         }
 
+        /// <summary>
+        /// 定时器 Tick 事件，用于执行 telnet 数据库端口操作
+        /// </summary>
+        /// <param name="sender"></param>
+        /// <param name="e"></param>
         private void pingTimer_Tick(object sender, EventArgs e)
         {
+            this.pingTimer.Stop(); // 停止定时器
+            EmailSender email = new EmailSender();
             try
             {
                 Dictionary<string, string> dictionary = IpHelper.GetConnections();
-
                 foreach (KeyValuePair<string, string> pair in dictionary)
                 {
-                    string ipAddress = pair.Key; // IP 地址
-                    string connectionString = pair.Value; // 数据库连接字符串
-                    Ping ping = new Ping();
-
-                    PingReply reply = ping.Send(ipAddress);
-                    if (reply.Status == IPStatus.Success)
+                    // IP 地址
+                    string ipAddress = pair.Key;
+                    bool isOk = IsPortOpen(ipAddress, 1433);
+                    if (!isOk)
                     {
-                        databaseHelper.UpdateConnectionString(connectionString); // 更新数据库连接字符串
-                        bool isQuerySuccessful = databaseHelper.Equals("SELECT 1");
-                    }
-                    else
-                    {
-                        logHelper.AppendLog($"{ipAddress} 无法 ping 通。");
+                        email.SendEmail("网络故障通知", $"IP 地址 {ipAddress} 不可达");
+                        logHelper.AppendLog($"IP 地址 {ipAddress} 不可达");
                     }
                 }
             }
             catch (Exception ex)
             {
+                email.SendEmail("网络故障通知", $"Ping 操作异常: {ex.Message}");
                 logHelper.AppendLog($"Ping 操作失败: {ex.Message}");
             }
+            finally
+            {
+                this.pingTimer.Start(); // 重新启动定时器
+            }
         }
+
+        /// <summary>
+        /// 检查指定 IP 地址和端口是否开放
+        /// </summary>
+        /// <param name="ip"></param>
+        /// <param name="port"></param>
+        /// <returns></returns>
+        public bool IsPortOpen(string ip, int port)
+        {
+            try
+            {
+                using (TcpClient tcpClient = new TcpClient())
+                {
+                    tcpClient.Connect(ip, port);
+                    return true;
+                }
+            }
+            catch (SocketException)
+            {
+                return false;
+            }
+        }
+
     }
 }
+

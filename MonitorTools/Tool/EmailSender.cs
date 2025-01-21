@@ -1,6 +1,7 @@
 ﻿using System.Net.Mail;
 using System.Net;
 using System;
+using System.Configuration;
 
 namespace MonitorTools.Tool
 {
@@ -14,10 +15,30 @@ namespace MonitorTools.Tool
         private string fromEmail; // 发件人邮箱地址
         private string toEmail; // 收件人邮箱地址
 
-        // 构造函数，初始化邮件发送相关配置
+        /// <summary>
+        /// 默认构造函数，从配置文件中读取邮件服务器相关信息
+        /// </summary>
+        public EmailSender()
+        {
+            this.smtpServer = ConfigurationManager.AppSettings["SmtpServer"];
+            this.smtpPort = int.Parse(ConfigurationManager.AppSettings["smtpPort"]);
+            this.smtpUser = ConfigurationManager.AppSettings["smtpUser"];
+            this.smtpPassword = ConfigurationManager.AppSettings["smtpPassword"];
+            this.fromEmail = ConfigurationManager.AppSettings["fromEmail"];
+            this.toEmail = ConfigurationManager.AppSettings["toEmail"];
+        }
+
+        /// <summary>
+        /// 自定义构造函数，用于手动设置邮件服务器相关信息
+        /// </summary>
+        /// <param name="smtpServer"></param>
+        /// <param name="smtpPort"></param>
+        /// <param name="smtpUser"></param>
+        /// <param name="smtpPassword"></param>
+        /// <param name="fromEmail"></param>
+        /// <param name="toEmail"></param>
         public EmailSender(string smtpServer, int smtpPort, string smtpUser, string smtpPassword, string fromEmail, string toEmail)
         {
-            // 初始化邮件服务器相关信息
             this.smtpServer = smtpServer;
             this.smtpPort = smtpPort;
             this.smtpUser = smtpUser;
@@ -26,8 +47,12 @@ namespace MonitorTools.Tool
             this.toEmail = toEmail;
         }
 
-        // 发送邮件的方法
-        // subject：邮件主题，body：邮件正文
+        /// <summary>
+        /// 发送邮件
+        /// </summary>
+        /// <param name="subject">邮件主题</param>
+        /// <param name="body">内容</param>
+        /// <returns></returns>
         public bool SendEmail(string subject, string body)
         {
             try

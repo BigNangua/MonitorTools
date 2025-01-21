@@ -79,6 +79,7 @@
             // 
             // pingTimer
             // 
+            this.pingTimer.Interval = 360000;
             this.pingTimer.Tick += new System.EventHandler(this.pingTimer_Tick);
             // 
             // MainForm

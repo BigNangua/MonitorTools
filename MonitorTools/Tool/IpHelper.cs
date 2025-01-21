@@ -11,7 +11,7 @@ namespace MonitorTools.Tool
         static IpHelper()
         {
             // 从配置文件加载 IP 和数据库连接映射
-            string json = ConfigurationManager.AppSettings["IpDatabaseConnections"];
+            string json = ConfigurationManager.AppSettings["IpData"];
             connections = JsonConvert.DeserializeObject<Dictionary<string, string>>(json);
         }
 
